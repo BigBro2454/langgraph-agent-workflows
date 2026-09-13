@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple LangGraph Agent Documentation</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; margin: 2rem auto; max-width: 800px; padding: 0 1rem; color: #333; }
+        h1, h2 { color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
+        pre { background: #f8f9fa; padding: 1rem; border-radius: 6px; overflow-x: auto; border: 1px solid #e9ecef; }
+        code { font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.9em; }
+        .mermaid { text-align: center; margin: 2rem 0; padding: 1rem; background: #fff; border-radius: 8px; border: 1px solid #eee; }
+        @media print {
+            body { margin: 0; padding: 0; max-width: 100%; color: #000; }
+            .mermaid { border: none; }
+        }
+    </style>
+    <!-- Load Mermaid.js for rendering the flowchart -->
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+</head>
+<body>
+    <h1>Simple LangGraph Agent Documentation</h1>
+    
+    <h2>Overview</h2>
+    <p>This document details the architecture and implementation of a minimal AI agent built using <strong>LangGraph</strong> and <strong>LangChain</strong>, and powered by Google's <code>gemini-3.1-flash-lite</code> model.</p>
+    
+    <h2>Architecture Flowchart</h2>
+    <p>The agent operates on a directed state graph. The state maintains a continuous conversation history, which is processed by the chatbot node on each turn.</p>
+    
+    <!-- Mermaid Flowchart Definition -->
+    <div class="mermaid">
+        graph TD
+            START((START)) --> chatbot[Chatbot Node<br/>Gemini 3.1 Flash Lite]
+            chatbot --> END((END))
+            
+            style START fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:white
+            style chatbot fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:white
+            style END fill:#F44336,stroke:#D32F2F,stroke-width:2px,color:white
+    </div>
+
+    <h2>State Definition</h2>
+    <p>The application state is defined as a TypedDict containing a list of messages. The <code>add_messages</code> reducer is crucial here; it ensures that new messages from the user and the LLM are appended to the history rather than overwriting it.</p>
+    <pre><code>from typing import Annotated
+from typing_extensions import TypedDict
+from langgraph.graph.message import add_messages
+
+class State(TypedDict):
+    messages: Annotated[list, add_messages]</code></pre>
+
+    <h2>Node Logic</h2>
+    <p>The graph consists of a single operational node: the <code>chatbot</code>. When executed, this function takes the current state (message history), passes it to the Gemini model, and returns a dictionary with the newly generated response. LangGraph then uses the reducer to update the global state.</p>
+
+    <h2>Execution Flow</h2>
+    <ol>
+        <li><strong>Initialization</strong>: The user provides a text prompt, which is formatted as a message and injected into the initial state.</li>
+        <li><strong>Routing</strong>: The graph begins execution at the <code>START</code> node and transitions directly to the <code>chatbot</code> node.</li>
+        <li><strong>Processing</strong>: The <code>chatbot</code> node queries the LLM and yields the response.</li>
+        <li><strong>Termination</strong>: The flow moves automatically to the <code>END</code> node, returning control to the terminal loop to await the next user input.</li>
+    </ol>
+</body>
+</html>

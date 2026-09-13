@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hierarchical Blog Writing Agent — Documentation</title>
+  <meta name="description" content="Technical documentation for the Hierarchical Blog Writing System built with LangGraph and LangChain. Covers architecture, agents, state management, and execution flow." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'base', themeVariables: {
+      primaryColor: '#1e1e2e',
+      primaryTextColor: '#cdd6f4',
+      primaryBorderColor: '#45475a',
+      lineColor: '#7f849c',
+      secondaryColor: '#181825',
+      tertiaryColor: '#313244',
+      background: '#1e1e2e',
+      mainBkg: '#313244',
+      nodeBorder: '#45475a',
+      clusterBkg: '#181825',
+      titleColor: '#cdd6f4',
+      edgeLabelBackground: '#1e1e2e',
+      fontFamily: 'Inter, sans-serif',
+    }});
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #161b27;
+      --surface-2: #1e2536;
+      --surface-3: #252d3d;
+      --border: rgba(255,255,255,0.07);
+      --text: #e2e8f0;
+      --text-muted: #8892a4;
+      --text-dim: #4a5568;
+
+      --purple: #a78bfa;
+      --purple-dim: rgba(167, 139, 250, 0.12);
+      --blue: #60a5fa;
+      --blue-dim: rgba(96, 165, 250, 0.12);
+      --amber: #fbbf24;
+      --amber-dim: rgba(251, 191, 36, 0.10);
+      --teal: #34d399;
+      --teal-dim: rgba(52, 211, 153, 0.10);
+      --rose: #f87171;
+      --rose-dim: rgba(248, 113, 113, 0.10);
+
+      --radius: 12px;
+      --radius-sm: 8px;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 2rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      margin-bottom: 1.75rem;
+      padding-left: 0.25rem;
+    }
+
+    .sidebar-logo .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .sidebar-logo span {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+    }
+
+    .nav-section-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      padding: 0.75rem 0.5rem 0.25rem;
+      margin-top: 0.5rem;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.625rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .nav-link:hover, .nav-link.active {
+      background: var(--surface-2);
+      color: var(--text);
+    }
+
+    .nav-link .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .main {
+      padding: 3rem 3.5rem;
+      max-width: 860px;
+    }
+
+    .hero { margin-bottom: 3.5rem; }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      background: var(--purple-dim);
+      border: 1px solid rgba(167,139,250,0.25);
+      color: var(--purple);
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      margin-bottom: 1rem;
+    }
+
+    .hero h1 {
+      font-size: 2.25rem;
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      margin-bottom: 1rem;
+    }
+
+    .hero p {
+      font-size: 1rem;
+      color: var(--text-muted);
+      max-width: 620px;
+      line-height: 1.8;
+    }
+
+    .tech-stack {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 1.5rem;
+    }
+
+    .tech-pill {
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    section {
+      margin-bottom: 3.5rem;
+      scroll-margin-top: 2rem;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .section-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    h3 {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.625rem;
+    }
+
+    p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.8; margin-bottom: 0.75rem; }
+    p:last-child { margin-bottom: 0; }
+
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2.5rem 0;
+    }
+
+    .diagram-wrapper {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem 1.5rem;
+      overflow-x: auto;
+    }
+
+    .diagram-wrapper .mermaid {
+      display: flex;
+      justify-content: center;
+    }
+
+    .arch-layers { display: flex; flex-direction: column; gap: 1rem; }
+
+    .arch-layer {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .arch-layer-header {
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+    }
+
+    .arch-layer-body {
+      padding: 1rem 1.25rem;
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      background: rgba(0,0,0,0.15);
+    }
+
+    .agent-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.875rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+    }
+
+    .agent-chip .chip-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .agent-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .agent-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      transition: border-color 0.2s, transform 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .agent-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+
+    .agent-card:hover { transform: translateY(-2px); }
+    .agent-card:hover::before { opacity: 1; }
+
+    .agent-card.purple { border-top: 2px solid var(--purple); }
+    .agent-card.purple::before { background: var(--purple-dim); }
+    .agent-card.blue { border-top: 2px solid var(--blue); }
+    .agent-card.blue::before { background: var(--blue-dim); }
+    .agent-card.amber { border-top: 2px solid var(--amber); }
+    .agent-card.amber::before { background: var(--amber-dim); }
+    .agent-card.teal { border-top: 2px solid var(--teal); }
+    .agent-card.teal::before { background: var(--teal-dim); }
+    .agent-card.rose { border-top: 2px solid var(--rose); }
+    .agent-card.rose::before { background: var(--rose-dim); }
+
+    .agent-card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      margin-bottom: 0.625rem;
+    }
+
+    .agent-card-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+
+    .agent-card h3 { margin: 0; font-size: 0.875rem; }
+    .agent-card p { font-size: 0.8125rem; margin: 0; }
+
+    .agent-card code {
+      font-size: 0.725rem;
+      font-family: var(--font-mono);
+      background: var(--surface-3);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      color: var(--text-muted);
+    }
+
+    .agent-meta {
+      margin-top: 0.75rem;
+      display: flex;
+      gap: 0.375rem;
+      flex-wrap: wrap;
+    }
+
+    .routes-to {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      margin-bottom: 0.25rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .code-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      font-family: var(--font-mono);
+    }
+
+    .code-block-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.625rem 1rem;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .code-block-title { font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono); }
+    .code-block-lang {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      background: var(--surface-3);
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+    }
+
+    .code-block pre {
+      padding: 1.25rem;
+      overflow-x: auto;
+      font-size: 0.8rem;
+      line-height: 1.7;
+      color: var(--text);
+    }
+
+    .kw { color: #c792ea; }
+    .fn { color: #82aaff; }
+    .st { color: #c3e88d; }
+    .cm { color: #546e7a; font-style: italic; }
+    .cl { color: #ffcb6b; }
+    .nb { color: #f78c6c; }
+
+    .flow-steps { display: flex; flex-direction: column; gap: 0; }
+
+    .flow-step { display: flex; gap: 1.25rem; }
+
+    .flow-step-left {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+      width: 36px;
+    }
+
+    .step-number {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      z-index: 1;
+    }
+
+    .step-line {
+      width: 1px;
+      flex: 1;
+      min-height: 1.5rem;
+      background: var(--border);
+      margin: 4px 0;
+    }
+
+    .flow-step-content {
+      padding: 0 0 2rem 0;
+      flex: 1;
+      padding-top: 0.4rem;
+    }
+
+    .flow-step-content h3 { font-size: 0.9rem; margin-bottom: 0.25rem; }
+
+    .state-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      display: flex;
+      gap: 2rem;
+    }
+
+    .state-field { flex: 1; }
+    .state-field-name { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 500; color: var(--blue); margin-bottom: 0.25rem; }
+    .state-field-type { font-family: var(--font-mono); font-size: 0.75rem; color: var(--purple); margin-bottom: 0.5rem; }
+    .state-field p { font-size: 0.8rem; margin: 0; }
+
+    .callout {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid;
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.25rem;
+      margin: 1rem 0;
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .callout.info { border-left-color: var(--blue); }
+    .callout.warn { border-left-color: var(--amber); }
+    .callout .callout-icon { font-size: 1rem; flex-shrink: 0; margin-top: 0.1rem; }
+    .callout p { margin: 0; font-size: 0.825rem; }
+
+    /* ── Code Walkthrough ─────────────────────────────── */
+    .snippet-block {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 2rem;
+    }
+
+    .snippet-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1.1rem;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .snippet-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .snippet-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text);
+      font-family: var(--font-mono);
+      flex: 1;
+    }
+
+    .snippet-file {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+    }
+
+    .snippet-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+
+    .snippet-code {
+      border-right: 1px solid var(--border);
+      overflow-x: auto;
+    }
+
+    .snippet-code pre {
+      padding: 1.1rem 1.25rem;
+      font-size: 0.775rem;
+      line-height: 1.75;
+      color: var(--text);
+      font-family: var(--font-mono);
+      margin: 0;
+    }
+
+    .snippet-explain {
+      padding: 1.1rem 1.25rem;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .explain-item {
+      display: flex;
+      gap: 0.6rem;
+      align-items: flex-start;
+    }
+
+    .explain-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin-top: 0.45rem;
+      flex-shrink: 0;
+    }
+
+    .explain-text {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    .explain-text strong { color: var(--text); font-weight: 600; }
+    .explain-text code {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      background: var(--surface-3);
+      padding: 0.1rem 0.35rem;
+      border-radius: 3px;
+      color: var(--text-muted);
+    }
+
+    /* Mini flow diagram inside walkthrough */
+    .mini-flow {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      flex-wrap: wrap;
+      padding: 0.9rem 1.25rem;
+      background: var(--surface-2);
+      border-top: 1px solid var(--border);
+      overflow-x: auto;
+    }
+
+    .mini-flow-node {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.3rem 0.7rem;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      background: var(--surface-3);
+      color: var(--text-muted);
+      white-space: nowrap;
+      font-family: var(--font-mono);
+    }
+
+    .mini-flow-node.active {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .mini-flow-arrow {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      padding: 0 0.35rem;
+      flex-shrink: 0;
+    }
+
+    .mini-flow-label {
+      font-size: 0.62rem;
+      color: var(--text-dim);
+      margin-top: 0.2rem;
+      text-align: center;
+    }
+
+    .mini-flow-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.1rem;
+    }
+
+    @media (max-width: 780px) {
+      .snippet-body { grid-template-columns: 1fr; }
+      .snippet-code { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+
+    /* ── End Code Walkthrough ──────────────────────────── */
+
+    @media (max-width: 780px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .main { padding: 2rem 1.25rem; }
+      .agent-grid { grid-template-columns: 1fr; }
+      .state-box { flex-direction: column; gap: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">🧠</div>
+      <span>Hierarchical Blog<br>Writing Agent</span>
+    </div>
+
+    <span class="nav-section-label">Overview</span>
+    <a class="nav-link" href="#overview"><span class="dot" style="background:var(--purple)"></span>Introduction</a>
+    <a class="nav-link" href="#architecture"><span class="dot" style="background:var(--blue)"></span>Architecture</a>
+
+    <span class="nav-section-label">Components</span>
+    <a class="nav-link" href="#supervisor"><span class="dot" style="background:var(--purple)"></span>Top-Level Supervisor</a>
+    <a class="nav-link" href="#research-team"><span class="dot" style="background:var(--blue)"></span>Research Team</a>
+    <a class="nav-link" href="#writing-team"><span class="dot" style="background:var(--amber)"></span>Writing Team</a>
+
+    <span class="nav-section-label">Internals</span>
+    <a class="nav-link" href="#state"><span class="dot" style="background:var(--teal)"></span>State Management</a>
+    <a class="nav-link" href="#flow"><span class="dot" style="background:var(--text-dim)"></span>Execution Flow</a>
+    <a class="nav-link" href="#walkthrough"><span class="dot" style="background:var(--amber)"></span>Code Walkthrough</a>
+    <a class="nav-link" href="#code"><span class="dot" style="background:var(--rose)"></span>Code Reference</a>
+  </aside>
+
+  <main class="main">
+
+    <div class="hero" id="overview">
+      <div class="hero-badge">
+        <span>&#x2B22;</span> LangGraph &middot; Multi-Agent System
+      </div>
+      <h1>Hierarchical Blog<br>Writing System</h1>
+      <p>A production-style multi-agent workflow built with LangGraph. A top-level supervisor orchestrates two specialized sub-teams &mdash; a <strong>Research Team</strong> and a <strong>Writing Team</strong> &mdash; to autonomously produce a complete, structured blog post from a single user prompt.</p>
+      <div class="tech-stack">
+        <span class="tech-pill">langgraph</span>
+        <span class="tech-pill">langchain-core</span>
+        <span class="tech-pill">langchain-google-genai</span>
+        <span class="tech-pill">pydantic</span>
+        <span class="tech-pill">gemini-3.1-flash-lite</span>
+      </div>
+    </div>
+
+    <hr />
+
+    <section id="architecture">
+      <div class="section-header">
+        <div class="section-icon" style="background:var(--blue-dim)">&#x1F3D7;&#xFE0F;</div>
+        <h2>Architecture Overview</h2>
+      </div>
+      <p>The system is composed of three interconnected <code>StateGraph</code> instances. The two sub-graphs (Research, Writing) are compiled and embedded as first-class <em>nodes</em> inside the top-level graph, giving each team complete autonomy over its own internal routing.</p>
+
+      <div class="arch-layers" style="margin-top:1.25rem">
+        <div class="arch-layer" style="border-color:rgba(167,139,250,0.25)">
+          <div class="arch-layer-header" style="background:var(--purple-dim); color:var(--purple)">
+            &#x2B22; Layer 1 &mdash; Top-Level Graph
+          </div>
+          <div class="arch-layer-body">
+            <div class="agent-chip"><span class="chip-dot" style="background:var(--purple)"></span>Top-Level Supervisor</div>
+            <div class="agent-chip"><span class="chip-dot" style="background:var(--blue)"></span>research_team (sub-graph)</div>
+            <div class="agent-chip"><span class="chip-dot" style="background:var(--amber)"></span>writing_team (sub-graph)</div>
+          </div>
+        </div>
+
+        <div class="arch-layer" style="border-color:rgba(96,165,250,0.25)">
+          <div class="arch-layer-header" style="background:var(--blue-dim); color:var(--blue)">
+            &#x1F50D; Layer 2 &mdash; Research Sub-Graph
+          </div>
+          <div class="arch-layer-body">
+            <div class="agent-chip"><span class="chip-dot" style="background:var(--blue)"></span>Research Supervisor</div>
+            <div class="agent-chip"><span class="chip-dot" style="background:var(--teal)"></span>search_agent</div>
+            <div class="agent-chip"><span class="chip-dot" style="background:var(--teal)"></span>web_scraper_agent</div>
+          </div>
+        </div>
+
+        <div class="arch-layer" style="border-color:rgba(251,191,36,0.25)">
+          <div class="arch-layer-header" style="background:var(--amber-dim); color:var(--amber)">
+            &#x270D;&#xFE0F; Layer 2 &mdash; Writing Sub-Graph
+          </div>
+          <div class="arch-layer-body">
+            <div class="agent-chip"><span class="chip-dot" style="background:var(--amber)"></span>Writing Supervisor</div>
+            <div class="agent-chip"><span class="chip-dot" style="background:var(--rose)"></span>doc_writer_agent</div>
+            <div class="agent-chip"><span class="chip-dot" style="background:var(--rose)"></span>note_taker_agent</div>
+            <div class="agent-chip"><span class="chip-dot" style="background:var(--rose)"></span>chart_generator_agent</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-header">
+        <div class="section-icon" style="background:var(--teal-dim)">&#x1F4CA;</div>
+        <h2>Graph Diagram</h2>
+      </div>
+      <div class="diagram-wrapper">
+        <div class="mermaid">
+graph TD
+    S(["START"]) --> sup["Top-Level Supervisor"]
+
+    subgraph RT["Research Team"]
+      rsup["Research Supervisor"]
+      sa["search_agent"]
+      ws["web_scraper_agent"]
+      rsup -->|search_agent| sa
+      rsup -->|web_scraper_agent| ws
+      sa --> rsup
+      ws --> rsup
+    end
+
+    subgraph WT["Writing Team"]
+      wsup["Writing Supervisor"]
+      dw["doc_writer_agent"]
+      nt["note_taker_agent"]
+      cg["chart_generator_agent"]
+      wsup -->|doc_writer_agent| dw
+      wsup -->|note_taker_agent| nt
+      wsup -->|chart_generator_agent| cg
+      dw --> wsup
+      nt --> wsup
+      cg --> wsup
+    end
+
+    sup -->|research_team| RT
+    RT -->|FINISH| sup
+    sup -->|writing_team| WT
+    WT -->|FINISH| sup
+    sup -->|FINISH| E(["END"])
+        </div>
+      </div>
+    </section>
+
+    <hr />
+
+    <section id="supervisor">
+      <div class="section-header">
+        <div class="section-icon" style="background:var(--purple-dim)">&#x2B22;</div>
+        <h2>Top-Level Supervisor</h2>
+      </div>
+      <p>The root orchestrator. It evaluates the global conversation state and decides whether to delegate work to the <code>research_team</code>, the <code>writing_team</code>, or to terminate by returning <code>FINISH</code>.</p>
+      <p>Routing decisions are made using a Pydantic model (<code>SuperRoute</code>) with structured LLM output, guaranteeing the response is always one of three valid transitions.</p>
+
+      <div class="code-block" style="margin-top:1rem">
+        <div class="code-block-header">
+          <span class="code-block-title">SuperRoute &mdash; structured routing schema</span>
+          <span class="code-block-lang">python</span>
+        </div>
+        <pre><span class="kw">class</span> <span class="cl">SuperRoute</span>(BaseModel):
+    next: <span class="cl">Literal</span>[<span class="st">"research_team"</span>, <span class="st">"writing_team"</span>, <span class="st">"FINISH"</span>]
+
+super_supervisor = super_prompt | llm.<span class="fn">with_structured_output</span>(<span class="cl">SuperRoute</span>)</pre>
+      </div>
+
+      <div class="callout info" style="margin-top:1rem">
+        <span class="callout-icon">&#x2139;&#xFE0F;</span>
+        <p>The supervisor node is a LangChain <strong>Runnable chain</strong> (prompt | llm), not a plain Python function. LangGraph handles invocation transparently at runtime.</p>
+      </div>
+    </section>
+
+    <hr />
+
+    <section id="research-team">
+      <div class="section-header">
+        <div class="section-icon" style="background:var(--blue-dim)">&#x1F50D;</div>
+        <h2>Research Team</h2>
+      </div>
+      <p>An independent <code>StateGraph</code> compiled into a sub-graph. It runs a supervisor-driven loop over two specialist agents until sufficient information is gathered, then returns control to the top-level graph.</p>
+
+      <div class="agent-grid" style="margin-top:1rem">
+        <div class="agent-card blue" style="grid-column: 1 / -1">
+          <div class="agent-card-header">
+            <div class="agent-card-icon" style="background:var(--blue-dim)">&#x1F9ED;</div>
+            <div>
+              <h3>Research Supervisor</h3>
+              <code>supervisor</code>
+            </div>
+          </div>
+          <p>Routes tasks between team members until enough data is collected, then returns <code>FINISH</code>.</p>
+          <div class="routes-to" style="margin-top:0.75rem">Routes to &rarr;</div>
+          <div style="display:flex; gap:0.375rem; flex-wrap:wrap">
+            <span class="tech-pill">search_agent</span>
+            <span class="tech-pill">web_scraper_agent</span>
+            <span class="tech-pill">FINISH</span>
+          </div>
+        </div>
+
+        <div class="agent-card teal">
+          <div class="agent-card-header">
+            <div class="agent-card-icon" style="background:var(--teal-dim)">&#x1F50E;</div>
+            <div>
+              <h3>Search Agent</h3>
+              <code>search_agent</code>
+            </div>
+          </div>
+          <p>Finds and surfaces relevant information on the requested topic, simulating a web search step.</p>
+        </div>
+
+        <div class="agent-card teal">
+          <div class="agent-card-header">
+            <div class="agent-card-icon" style="background:var(--teal-dim)">&#x1F578;&#xFE0F;</div>
+            <div>
+              <h3>Web Scraper Agent</h3>
+              <code>web_scraper_agent</code>
+            </div>
+          </div>
+          <p>Extracts detailed, structured data to support and supplement the search agent's initial findings.</p>
+        </div>
+      </div>
+    </section>
+
+    <hr />
+
+    <section id="writing-team">
+      <div class="section-header">
+        <div class="section-icon" style="background:var(--amber-dim)">&#x270D;&#xFE0F;</div>
+        <h2>Writing Team</h2>
+      </div>
+      <p>A second independent sub-graph activated after the Research Team completes. It transforms raw research findings into a polished, structured blog post by routing tasks to three specialized writers.</p>
+
+      <div class="agent-grid" style="margin-top:1rem">
+        <div class="agent-card amber" style="grid-column: 1 / -1">
+          <div class="agent-card-header">
+            <div class="agent-card-icon" style="background:var(--amber-dim)">&#x1F9ED;</div>
+            <div>
+              <h3>Writing Supervisor</h3>
+              <code>supervisor</code>
+            </div>
+          </div>
+          <p>Orchestrates the writing workflow &mdash; deciding which agent acts next &mdash; until the blog post is fully composed.</p>
+          <div class="routes-to" style="margin-top:0.75rem">Routes to &rarr;</div>
+          <div style="display:flex; gap:0.375rem; flex-wrap:wrap">
+            <span class="tech-pill">doc_writer_agent</span>
+            <span class="tech-pill">note_taker_agent</span>
+            <span class="tech-pill">chart_generator_agent</span>
+            <span class="tech-pill">FINISH</span>
+          </div>
+        </div>
+
+        <div class="agent-card rose">
+          <div class="agent-card-header">
+            <div class="agent-card-icon" style="background:var(--rose-dim)">&#x1F4DD;</div>
+            <div>
+              <h3>Doc Writer Agent</h3>
+              <code>doc_writer_agent</code>
+            </div>
+          </div>
+          <p>Authors the narrative of the blog post, incorporating all notes and research into a cohesive long-form article.</p>
+        </div>
+
+        <div class="agent-card rose">
+          <div class="agent-card-header">
+            <div class="agent-card-icon" style="background:var(--rose-dim)">&#x1F4CB;</div>
+            <div>
+              <h3>Note Taker Agent</h3>
+              <code>note_taker_agent</code>
+            </div>
+          </div>
+          <p>Condenses and organizes the raw research output into coherent, structured bullet-point summaries.</p>
+        </div>
+
+        <div class="agent-card rose">
+          <div class="agent-card-header">
+            <div class="agent-card-icon" style="background:var(--rose-dim)">&#x1F4CA;</div>
+            <div>
+              <h3>Chart Generator Agent</h3>
+              <code>chart_generator_agent</code>
+            </div>
+          </div>
+          <p>Represents key data points as visual markdown tables and comparative charts to enrich the post.</p>
+        </div>
+      </div>
+    </section>
+
+    <hr />
+
+    <section id="state">
+      <div class="section-header">
+        <div class="section-icon" style="background:var(--teal-dim)">&#x1F5C2;&#xFE0F;</div>
+        <h2>State Management</h2>
+      </div>
+      <p>All three graphs share a single <code>State</code> schema. The <code>add_messages</code> reducer ensures messages from every agent &mdash; across all sub-graph levels &mdash; are <strong>appended</strong> rather than overwritten, building up rich shared context as the workflow progresses.</p>
+
+      <div class="state-box" style="margin-top:1rem">
+        <div class="state-field">
+          <div class="state-field-name">messages</div>
+          <div class="state-field-type">Annotated[list[BaseMessage], add_messages]</div>
+          <p>Accumulates the full conversation history. Every node reads from and appends to this list. The reducer handles safe merging across parallel branches.</p>
+        </div>
+        <div class="state-field">
+          <div class="state-field-name">next</div>
+          <div class="state-field-type">str</div>
+          <p>Written by each supervisor to signal the routing target. Conditional edges read this field to determine the next node to activate.</p>
+        </div>
+      </div>
+
+      <div class="code-block" style="margin-top:1rem">
+        <div class="code-block-header">
+          <span class="code-block-title">state definition</span>
+          <span class="code-block-lang">python</span>
+        </div>
+        <pre><span class="kw">from</span> typing <span class="kw">import</span> <span class="cl">Annotated</span>, <span class="cl">TypedDict</span>
+<span class="kw">from</span> langchain_core.messages <span class="kw">import</span> <span class="cl">BaseMessage</span>
+<span class="kw">from</span> langgraph.graph.message <span class="kw">import</span> add_messages
+
+<span class="kw">class</span> <span class="cl">State</span>(TypedDict):
+    messages: <span class="cl">Annotated</span>[list[<span class="cl">BaseMessage</span>], add_messages]
+    next: <span class="nb">str</span></pre>
+      </div>
+    </section>
+
+    <hr />
+
+    <section id="flow">
+      <div class="section-header">
+        <div class="section-icon" style="background:var(--surface-3)">&#x25B6;&#xFE0F;</div>
+        <h2>Execution Flow</h2>
+      </div>
+
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="flow-step-left">
+            <div class="step-number" style="background:var(--purple-dim); border-color:rgba(167,139,250,0.3); color:var(--purple)">1</div>
+            <div class="step-line"></div>
+          </div>
+          <div class="flow-step-content">
+            <h3>User prompt injected as a HumanMessage</h3>
+            <p>The run begins with a single HumanMessage added to the initial state, e.g. <em>"Write a blog post about multi-agent systems."</em></p>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-left">
+            <div class="step-number" style="background:var(--purple-dim); border-color:rgba(167,139,250,0.3); color:var(--purple)">2</div>
+            <div class="step-line"></div>
+          </div>
+          <div class="flow-step-content">
+            <h3>Top-Level Supervisor routes to <code>research_team</code></h3>
+            <p>The supervisor evaluates the state and determines research must come first. It sets <code>next = "research_team"</code>.</p>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-left">
+            <div class="step-number" style="background:var(--blue-dim); border-color:rgba(96,165,250,0.3); color:var(--blue)">3</div>
+            <div class="step-line"></div>
+          </div>
+          <div class="flow-step-content">
+            <h3>Research sub-graph runs its internal loop</h3>
+            <p>The Research Supervisor cycles between search and scraper agents. When satisfied, it returns <code>FINISH</code> and all messages flow back to the top-level state.</p>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-left">
+            <div class="step-number" style="background:var(--purple-dim); border-color:rgba(167,139,250,0.3); color:var(--purple)">4</div>
+            <div class="step-line"></div>
+          </div>
+          <div class="flow-step-content">
+            <h3>Top-Level Supervisor routes to <code>writing_team</code></h3>
+            <p>Seeing the research in context, the supervisor delegates to the writing team to draft the final post.</p>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-left">
+            <div class="step-number" style="background:var(--amber-dim); border-color:rgba(251,191,36,0.3); color:var(--amber)">5</div>
+            <div class="step-line"></div>
+          </div>
+          <div class="flow-step-content">
+            <h3>Writing sub-graph produces the final output</h3>
+            <p>The Writing Supervisor orchestrates note-taking, chart generation, and final authoring. On completion, it returns <code>FINISH</code>.</p>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-left">
+            <div class="step-number" style="background:var(--teal-dim); border-color:rgba(52,211,153,0.3); color:var(--teal)">6</div>
+          </div>
+          <div class="flow-step-content" style="padding-bottom:0">
+            <h3>Top-Level Supervisor returns <code>FINISH</code> &rarr; END</h3>
+            <p>The top-level supervisor terminates the graph. The final blog post lives within <code>state["messages"]</code>.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr />
+
+    <section id="walkthrough">
+      <div class="section-header">
+        <div class="section-icon" style="background:var(--amber-dim)">&#x1F9E9;</div>
+        <h2>Code Walkthrough</h2>
+      </div>
+      <p>Every snippet below maps directly to a block in <code>hierarchical_blog_writer.py</code>. The left pane is the code; the right explains exactly what each part does and why it matters.</p>
+
+      <!-- ── Snippet 1: Imports & LLM Setup ── -->
+      <div class="snippet-block">
+        <div class="snippet-header">
+          <span class="snippet-badge" style="background:var(--surface-3); color:var(--text-muted)">Lines 1–13</span>
+          <span class="snippet-title">Imports &amp; LLM Setup</span>
+          <span class="snippet-file">hierarchical_blog_writer.py</span>
+        </div>
+        <div class="snippet-body">
+          <div class="snippet-code">
+            <pre><span class="kw">import</span> os, operator
+<span class="kw">from</span> typing <span class="kw">import</span> <span class="cl">Annotated</span>, <span class="cl">Literal</span>, <span class="cl">TypedDict</span>
+<span class="kw">from</span> pydantic <span class="kw">import</span> <span class="cl">BaseModel</span>
+<span class="kw">from</span> langchain_core.messages <span class="kw">import</span> <span class="cl">BaseMessage</span>, <span class="cl">HumanMessage</span>, <span class="cl">SystemMessage</span>
+<span class="kw">from</span> langchain_core.prompts <span class="kw">import</span> <span class="cl">ChatPromptTemplate</span>, <span class="cl">MessagesPlaceholder</span>
+<span class="kw">from</span> langchain_google_genai <span class="kw">import</span> <span class="cl">ChatGoogleGenerativeAI</span>
+<span class="kw">from</span> langgraph.graph <span class="kw">import</span> <span class="cl">StateGraph</span>, <span class="cl">START</span>, <span class="cl">END</span>
+<span class="kw">from</span> langgraph.graph.message <span class="kw">import</span> add_messages
+
+<span class="cm"># Set up LLM</span>
+api_key = os.<span class="fn">environ</span>.<span class="fn">get</span>(<span class="st">"GEMINI_API_KEY"</span>)
+llm = <span class="cl">ChatGoogleGenerativeAI</span>(
+    model=<span class="st">"gemini-3.1-flash-lite"</span>,
+    google_api_key=api_key
+)</pre>
+          </div>
+          <div class="snippet-explain">
+            <div class="explain-item">
+              <div class="explain-dot" style="background:var(--teal)"></div>
+              <div class="explain-text"><strong>LangGraph primitives</strong> — <code>StateGraph</code>, <code>START</code>, <code>END</code> are the core graph-building blocks. <code>add_messages</code> is a <em>reducer</em> that appends instead of overwrites.</div>
+            </div>
+            <div class="explain-item">
+              <div class="explain-dot" style="background:var(--blue)"></div>
+              <div class="explain-text"><strong>Message types</strong> — <code>HumanMessage</code> wraps user/agent outputs; <code>SystemMessage</code> injects role-play context into each LLM call.</div>
+            </div>
+            <div class="explain-item">
+              <div class="explain-dot" style="background:var(--purple)"></div>
+              <div class="explain-text"><strong>Single shared LLM</strong> — all agents reuse this one <code>llm</code> instance. Swapping the model string here propagates everywhere.</div>
+            </div>
+          </div>
+        </div>
+        <div class="mini-flow">
+          <div class="mini-flow-col">
+            <div class="mini-flow-node active" style="border-color:rgba(96,165,250,0.35); color:var(--blue)">env var</div>
+            <div class="mini-flow-label">GEMINI_API_KEY</div>
+          </div>
+          <span class="mini-flow-arrow">→</span>
+          <div class="mini-flow-col">
+            <div class="mini-flow-node active" style="border-color:rgba(167,139,250,0.35); color:var(--purple)">ChatGoogleGenerativeAI</div>
+            <div class="mini-flow-label">shared llm instance</div>
+          </div>
+          <span class="mini-flow-arrow">→</span>
+          <div class="mini-flow-col">
+            <div class="mini-flow-node">all agents</div>
+            <div class="mini-flow-label">reuse same model</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Snippet 2: Shared State ── -->
+      <div class="snippet-block">
+        <div class="snippet-header">
+          <span class="snippet-badge" style="background:var(--surface-3); color:var(--text-muted)">Lines 15–18</span>
+          <span class="snippet-title">Shared State Schema</span>
+          <span class="snippet-file">hierarchical_blog_writer.py</span>
+        </div>
+        <div class="snippet-body">
+          <div class="snippet-code">
+            <pre><span class="cm"># Global State — shared across all three graphs</span>
+<span class="kw">class</span> <span class="cl">State</span>(<span class="cl">TypedDict</span>):
+    messages: <span class="cl">Annotated</span>[list[<span class="cl">BaseMessage</span>], add_messages]
+    next: <span class="nb">str</span></pre>
+          </div>
+          <div class="snippet-explain">
+            <div class="explain-item">
+              <div class="explain-dot" style="background:var(--teal)"></div>
+              <div class="explain-text"><strong><code>messages</code> with <code>add_messages</code></strong> — the <code>Annotated</code> reducer means LangGraph calls <code>add_messages(old, new)</code> on every update, so messages accumulate into one growing log rather than being replaced.</div>
+            </div>
+            <div class="explain-item">
+              <div class="explain-dot" style="background:var(--amber)"></div>
+              <div class="explain-text"><strong><code>next</code></strong> — a plain string that each supervisor writes after deciding where to route. Conditional edges read this field to pick the next node.</div>
+            </div>
+            <div class="explain-item">
+              <div class="explain-dot" style="background:var(--purple)"></div>
+              <div class="explain-text"><strong>Single schema for all graphs</strong> — the same <code>State</code> class powers the top-level graph, the research sub-graph, and the writing sub-graph, so messages flow up and down without conversion.</div>
+            </div>
+          </div>
+        </div>
+        <div class="mini-flow">
+          <div class="mini-flow-col">
+            <div class="mini-flow-node active" style="border-color:rgba(52,211,153,0.35); color:var(--teal)">messages[ ]</div>
+            <div class="mini-flow-label">add_messages reducer</div>
+          </div>
+          <span class="mini-flow-arrow">+</span>
+          <div class="mini-flow-col">
+            <div class="mini-flow-node active" style="border-color:rgba(251,191,36,0.35); color:var(--amber)">next: str</div>
+            <div class="mini-flow-label">routing signal</div>
+          </div>
+          <span class="mini-flow-arrow">→</span>
+          <div class="mini-flow-col">
+            <div class="mini-flow-node">State</div>
+            <div class="mini-flow-label">shared by all nodes</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Snippet 3: Research Supervisor Chain ── -->
+      <div class="snippet-block">
+        <div class="snippet-header">
+          <span class="snippet-badge" style="background:rgba(96,165,250,0.12); color:var(--blue)">Lines 21–31</span>
+          <span class="snippet-title">Research Supervisor — prompt chain &amp; routing schema</span>
+          <span class="snippet-file">hierarchical_blog_writer.py</span>
+        </div>
+        <div class="snippet-body">
+          <div class="snippet-code">
+            <pre><span class="kw">class</span> <span class="cl">ResearchRoute</span>(<span class="cl">BaseModel</span>):
+    next: <span class="cl">Literal</span>[<span class="st">"search_agent"</span>, <span class="st">"web_scraper_agent"</span>, <span class="st">"FINISH"</span>]
+
+research_prompt = <span class="cl">ChatPromptTemplate</span>.<span class="fn">from_messages</span>([
+    (<span class="st">"system"</span>, <span class="st">"You are the supervisor of the Research Team..."</span>),
+    <span class="cl">MessagesPlaceholder</span>(variable_name=<span class="st">"messages"</span>),
+    (<span class="st">"system"</span>, <span class="st">"Who should act next? Select one of: ..."</span>)
+])
+
+research_supervisor = research_prompt | llm.<span class="fn">with_structured_output</span>(<span class="cl">ResearchRoute</span>)</pre>
+          </div>
+          <div class="snippet-explain">
+            <div class="explain-item">
+              <div class="explain-dot" style="background:var(--blue)"></div>
+              <div class="explain-text"><strong><code>ResearchRoute</code> Pydantic model</strong> — restricts the LLM's response to exactly one of three string literals. If the model hallucinates any other value, Pydantic validation raises an error before it reaches the graph.</div>
+            </div>
+            <div class="explain-item">
+              <div class="explain-dot" style="background:var(--teal)"></div>
+              <div class="explain-text"><strong><code>MessagesPlaceholder</code></strong> — injects the full accumulated <code>state["messages"]</code> at invocation time so the supervisor sees all prior agent outputs when deciding who goes next.</div>
+            </div>
+            <div class="explain-item">
+              <div class="explain-dot" style="background:var(--purple)"></div>
+              <div class="explain-text"><strong>Pipe chain <code>|</code></strong> — LangChain's LCEL (LangChain Expression Language) composition. The prompt formats the input, passes it to the LLM, then <code>with_structured_output</code> parses the JSON response into a <code>ResearchRoute</code> object.</div>
+            </div>
+          </div>
+        </div>
+        <div class="mini-flow">
+          <div class="mini-flow-col">
+            <div class="mini-flow-node active" style="border-color:rgba(96,165,250,0.35); color:var(--blue)">research_prompt</div>
+            <div class="mini-flow-label">formats messages</div>
+          </div>
+          <span class="mini-flow-arrow">|</span>
+          <div class="mini-flow-col">
+            <div class="mini-flow-node active" style="border-color:rgba(167,139,250,0.35); color:var(--purple)">llm</div>
+            <div class="mini-flow-label">generates text</div>
+          </div>
+          <span class="mini-flow-arrow">|</span>
+          <div class="mini-flow-col">
+            <div class="mini-flow-node active" style="border-color:rgba(52,211,153,0.35); color:var(--teal)">structured_output</div>
+            <div class="mini-flow-label">parses → ResearchRoute</div>
+          </div>
+          <span class="mini-flow-arrow">→</span>
+          <div class="mini-flow-col">
+            <div class="mini-flow-node">next: "search_agent" | …</div>
+            <div class="mini-flow-label">written to state</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Snippet 4: Worker Agent Nodes ── -->
+      <div class="snippet-block">
+        <div class="snippet-header">
+          <span class="snippet-badge" style="background:rgba(96,165,250,0.12); color:var(--blue)">Lines 33–39</span>
+          <span class="snippet-title">Worker Agent Nodes — search &amp; scraper</span>
+          <span class="snippet-file">hierarchical_blog_writer.py</span>
+        </div>
+        <div class="snippet-body">
+          <div class="snippet-code">
+            <pre><span class="kw">def</span> <span class="fn">search_agent_node</span>(state: <span class="cl">State</span>):
+    response = llm.<span class="fn">invoke</span>([
+        <span class="cl">SystemMessage</span>(content=<span class="st">"You are a search agent. Find relevant information..."</span>)
+    ] + state[<span class="st">"messages"</span>])
+    <span class="kw">return</span> {<span class="st">"messages"</span>: [<span class="cl">HumanMessage</span>(content=response.content, name=<span class="st">"search_agent"</span>)]}
+
+<span class="kw">def</span> <span class="fn">web_scraper_agent_node</span>(state: <span class="cl">State</span>):
+    response = llm.<span class="fn">invoke</span>([
+        <span class="cl">SystemMessage</span>(content=<span class="st">"You are a web scraper. Extract detailed data..."</span>)
+    ] + state[<span class="st">"messages"</span>])
+    <span class="kw">return</span> {<span class="st">"messages"</span>: [<span class="cl">HumanMessage</span>(content=response.content, name=<span class="st">"web_scraper_agent"</span>)]}</pre>
+          </div>
+          <div class="snippet-explain">
+            <div class="explain-item">
+              <div class="explain-dot" style="background:var(--teal)"></div>
+              <div class="explain-text"><strong>Node signature</strong> — every node receives the full <code>State</code> dict and returns a <em>partial</em> state update. LangGraph merges it using the declared reducers.</div>
+            </div>
+            <div class="explain-item">
+              <div class="explain-dot" style="background:var(--blue)"></div>
+              <div class="explain-text"><strong><code>SystemMessage</code> prepended</strong> — the agent's persona is injected at call time, giving each worker a distinct role without separate model instances.</div>
+            </div>
+            <div class="explain-item">
+              <div class="explain-dot" style="background:var(--amber)"></div>
+              <div class="explain-text"><strong><code>name=</code> on HumanMessage</strong> — tagging the message with the agent's name lets other nodes and the supervisor distinguish who said what when reading <code>state["messages"]</code>.</div>
+            </div>
+          </div>
+        </div>
+        <div class="mini-flow">
+          <div class="mini-flow-col">
+            <div class="mini-flow-node">state["messages"]</div>
+            <div class="mini-flow-label">full history</div>
+          </div>
+          <span class="mini-flow-arrow">+</span>
+          <div class="mini-flow-col">
+            <div class="mini-flow-node active" style="border-color:rgba(52,211,153,0.35); color:var(--teal)">SystemMessage(role)</div>
+            <div class="mini-flow-label">persona injection</div>
+          </div>
+          <span class="mini-flow-arrow">→</span>
+          <div class="mini-flow-col">
+            <div class="mini-flow-node active" style="border-color:rgba(96,165,250,0.35); color:var(--blue)">llm.invoke()</div>
+            <div class="mini-flow-label">generate response</div>
+          </div>
+          <span class="mini-flow-arrow">→</span>
+          <div class="mini-flow-col">
+            <div class="mini-flow-node active" style="border-color:rgba(251,191,36,0.35); color:var(--amber)">HumanMessage(name=…)</div>
+            <div class="mini-flow-label">appended to state</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Snippet 5: Research Sub-Graph Assembly ── -->
+      <div class="snippet-block">
+        <div class="snippet-header">
+          <span class="snippet-badge" style="background:rgba(96,165,250,0.12); color:var(--blue)">Lines 41–50</span>
+          <span class="snippet-title">Research Sub-Graph — assembly &amp; conditional edges</span>
+          <span class="snippet-file">hierarchical_blog_writer.py</span>
+        </div>
+        <div class="snippet-body">
+          <div class="snippet-code">
+            <pre>research_builder = <span class="cl">StateGraph</span>(<span class="cl">State</span>)
+research_builder.<span class="fn">add_node</span>(<span class="st">"supervisor"</span>, research_supervisor)
+research_builder.<span class="fn">add_node</span>(<span class="st">"search_agent"</span>, search_agent_node)
+research_builder.<span class="fn">add_node</span>(<span class="st">"web_scraper_agent"</span>, web_scraper_agent_node)
+
+research_builder.<span class="fn">add_edge</span>(<span class="st">"search_agent"</span>, <span class="st">"supervisor"</span>)
+research_builder.<span class="fn">add_edge</span>(<span class="st">"web_scraper_agent"</span>, <span class="st">"supervisor"</span>)
+research_builder.<span class="fn">add_conditional_edges</span>(
+    <span class="st">"supervisor"</span>,
+    <span class="kw">lambda</span> x: x[<span class="st">"next"</span>],
+    {<span class="st">"FINISH"</span>: END, <span class="st">"search_agent"</span>: <span class="st">"search_agent"</span>, ...}
+)
+research_builder.<span class="fn">add_edge</span>(START, <span class="st">"supervisor"</span>)
+research_graph = research_builder.<span class="fn">compile</span>()</pre>
+          </div>
+          <div class="snippet-explain">
+            <div class="explain-item">
+              <div class="explain-dot" style="background:var(--blue)"></div>
+              <div class="explain-text"><strong><code>add_node</code></strong> — registers a callable (function or LCEL chain) under a string name. The supervisor is a chain; the agents are plain functions.</div>
+            </div>
+            <div class="explain-item">
+              <div class="explain-dot" style="background:var(--teal)"></div>
+              <div class="explain-text"><strong>Worker → supervisor edges</strong> — agents always return to the supervisor after running. This creates the <em>supervisor loop</em> pattern.</div>
+            </div>
+            <div class="explain-item">
+              <div class="explain-dot" style="background:var(--purple)"></div>
+              <div class="explain-text"><strong><code>add_conditional_edges</code></strong> — the lambda reads <code>state["next"]</code> (set by the supervisor) and dispatches to the matching node name, or to <code>END</code> which terminates this sub-graph and returns control to the parent.</div>
+            </div>
+            <div class="explain-item">
+              <div class="explain-dot" style="background:var(--amber)"></div>
+              <div class="explain-text"><strong><code>compile()</code></strong> — validates the graph (no dangling edges, all nodes reachable) and returns a <code>CompiledGraph</code> that behaves like a regular callable — ready to be embedded as a node in the parent graph.</div>
+            </div>
+          </div>
+        </div>
+        <div class="mini-flow">
+          <div class="mini-flow-col">
+            <div class="mini-flow-node">START</div>
+          </div>
+          <span class="mini-flow-arrow">→</span>
+          <div class="mini-flow-col">
+            <div class="mini-flow-node active" style="border-color:rgba(96,165,250,0.35); color:var(--blue)">supervisor</div>
+            <div class="mini-flow-label">conditional edge</div>
+          </div>
+          <span class="mini-flow-arrow">→</span>
+          <div class="mini-flow-col">
+            <div class="mini-flow-node active" style="border-color:rgba(52,211,153,0.35); color:var(--teal)">search_agent</div>
+          </div>
+          <span class="mini-flow-arrow">↺</span>
+          <div class="mini-flow-col">
+            <div class="mini-flow-node active" style="border-color:rgba(52,211,153,0.35); color:var(--teal)">web_scraper_agent</div>
+          </div>
+          <span class="mini-flow-arrow">→</span>
+          <div class="mini-flow-col">
+            <div class="mini-flow-node">END</div>
+            <div class="mini-flow-label">when next="FINISH"</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Snippet 6: Top-Level Graph & Embedding Sub-Graphs ── -->
+      <div class="snippet-block">
+        <div class="snippet-header">
+          <span class="snippet-badge" style="background:rgba(167,139,250,0.12); color:var(--purple)">Lines 90–114</span>
+          <span class="snippet-title">Top-Level Graph — embedding sub-graphs as nodes</span>
+          <span class="snippet-file">hierarchical_blog_writer.py</span>
+        </div>
+        <div class="snippet-body">
+          <div class="snippet-code">
+            <pre><span class="kw">class</span> <span class="cl">SuperRoute</span>(<span class="cl">BaseModel</span>):
+    next: <span class="cl">Literal</span>[<span class="st">"research_team"</span>, <span class="st">"writing_team"</span>, <span class="st">"FINISH"</span>]
+
+super_supervisor = super_prompt | llm.<span class="fn">with_structured_output</span>(<span class="cl">SuperRoute</span>)
+
+super_builder = <span class="cl">StateGraph</span>(<span class="cl">State</span>)
+super_builder.<span class="fn">add_node</span>(<span class="st">"supervisor"</span>, super_supervisor)
+<span class="cm"># Compiled sub-graphs are added just like any function node</span>
+super_builder.<span class="fn">add_node</span>(<span class="st">"research_team"</span>, research_graph)
+super_builder.<span class="fn">add_node</span>(<span class="st">"writing_team"</span>, writing_graph)
+
+super_builder.<span class="fn">add_edge</span>(<span class="st">"research_team"</span>, <span class="st">"supervisor"</span>)
+super_builder.<span class="fn">add_edge</span>(<span class="st">"writing_team"</span>, <span class="st">"supervisor"</span>)
+super_builder.<span class="fn">add_conditional_edges</span>(
+    <span class="st">"supervisor"</span>, <span class="kw">lambda</span> x: x[<span class="st">"next"</span>],
+    {<span class="st">"FINISH"</span>: END, <span class="st">"research_team"</span>: <span class="st">"research_team"</span>, <span class="st">"writing_team"</span>: <span class="st">"writing_team"</span>}
+)
+super_builder.<span class="fn">add_edge</span>(START, <span class="st">"supervisor"</span>)
+super_graph = super_builder.<span class="fn">compile</span>()</pre>
+          </div>
+          <div class="snippet-explain">
+            <div class="explain-item">
+              <div class="explain-dot" style="background:var(--purple)"></div>
+              <div class="explain-text"><strong>Sub-graphs as first-class nodes</strong> — <code>research_graph</code> and <code>writing_graph</code> are compiled <code>CompiledGraph</code> objects. Passing them to <code>add_node</code> makes LangGraph treat the entire sub-graph as a single opaque node — it runs its full internal loop and exits before the parent continues.</div>
+            </div>
+            <div class="explain-item">
+              <div class="explain-dot" style="background:var(--teal)"></div>
+              <div class="explain-text"><strong>State propagation</strong> — because all graphs share the same <code>State</code> schema, messages produced inside a sub-graph are automatically merged back into the parent state when the sub-graph's <code>END</code> is reached.</div>
+            </div>
+            <div class="explain-item">
+              <div class="explain-dot" style="background:var(--blue)"></div>
+              <div class="explain-text"><strong>Same routing pattern</strong> — the top-level supervisor uses the identical <code>state["next"]</code> conditional edge pattern as the sub-supervisors, keeping the mental model consistent at every level.</div>
+            </div>
+          </div>
+        </div>
+        <div class="mini-flow">
+          <div class="mini-flow-col">
+            <div class="mini-flow-node">START</div>
+          </div>
+          <span class="mini-flow-arrow">→</span>
+          <div class="mini-flow-col">
+            <div class="mini-flow-node active" style="border-color:rgba(167,139,250,0.35); color:var(--purple)">supervisor</div>
+            <div class="mini-flow-label">SuperRoute.next</div>
+          </div>
+          <span class="mini-flow-arrow">→</span>
+          <div class="mini-flow-col">
+            <div class="mini-flow-node active" style="border-color:rgba(96,165,250,0.35); color:var(--blue)">research_team</div>
+            <div class="mini-flow-label">[compiled sub-graph]</div>
+          </div>
+          <span class="mini-flow-arrow">→</span>
+          <div class="mini-flow-col">
+            <div class="mini-flow-node active" style="border-color:rgba(167,139,250,0.35); color:var(--purple)">supervisor</div>
+          </div>
+          <span class="mini-flow-arrow">→</span>
+          <div class="mini-flow-col">
+            <div class="mini-flow-node active" style="border-color:rgba(251,191,36,0.35); color:var(--amber)">writing_team</div>
+            <div class="mini-flow-label">[compiled sub-graph]</div>
+          </div>
+          <span class="mini-flow-arrow">→</span>
+          <div class="mini-flow-col">
+            <div class="mini-flow-node">END</div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <hr />
+
+    <section id="code">
+      <div class="section-header">
+        <div class="section-icon" style="background:var(--rose-dim)">&#x1F4BB;</div>
+        <h2>Code Reference</h2>
+      </div>
+
+      <p>The full implementation lives in <code>hierarchical_blog_writer.py</code>. Set your API key and run:</p>
+
+      <div class="code-block" style="margin-top:1rem">
+        <div class="code-block-header">
+          <span class="code-block-title">running the agent</span>
+          <span class="code-block-lang">bash</span>
+        </div>
+        <pre>export GEMINI_API_KEY=<span class="st">"your-api-key"</span>
+source .venv/bin/activate
+python hierarchical_blog_writer.py</pre>
+      </div>
+
+      <div class="code-block" style="margin-top:1rem">
+        <div class="code-block-header">
+          <span class="code-block-title">changing the topic</span>
+          <span class="code-block-lang">python</span>
+        </div>
+        <pre><span class="cm"># In hierarchical_blog_writer.py, update this line:</span>
+user_input = <span class="st">"Write a blog post about the future of quantum computing."</span>
+
+events = super_graph.<span class="fn">stream</span>(
+    {<span class="st">"messages"</span>: [<span class="cl">HumanMessage</span>(content=user_input)]},
+    {<span class="st">"recursion_limit"</span>: <span class="nb">20</span>}
+)</pre>
+      </div>
+
+      <div class="callout warn" style="margin-top:1rem">
+        <span class="callout-icon">&#x26A0;&#xFE0F;</span>
+        <p>The <code>recursion_limit</code> controls the maximum number of node invocations across the entire nested graph. Increase it for complex topics requiring deeper research-writing cycles.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  const sections = document.querySelectorAll('section, .hero');
+  const navLinks = document.querySelectorAll('.nav-link');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(link => link.classList.remove('active'));
+        const id = entry.target.id;
+        const active = document.querySelector(`.nav-link[href="#${id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+
+  sections.forEach(s => s.id && observer.observe(s));
+</script>
+
+</body>
+</html>

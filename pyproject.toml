@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "langgraph-agent-workflows"
+version = "0.1.0"
+description = "Production stateful multi-agent architectures and hierarchical supervisor graphs powered by LangGraph and Google Gemini"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Ishan Dhiman", email = "product.ishand03@gmail.com" }
+]
+keywords = [
+    "langgraph",
+    "multi-agent",
+    "google-gemini",
+    "state-machines",
+    "hierarchical-agents",
+    "langchain",
+    "agentic-ai"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence"
+]
+dependencies = [
+    "langchain-core>=0.3.0",
+    "langchain-google-genai>=2.0.0",
+    "langgraph>=0.2.0",
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/BigBro2454/langgraph-agent-workflows"
+Repository = "https://github.com/BigBro2454/langgraph-agent-workflows"
+
+[project.scripts]
+langgraph-workflows = "run_agent:main"
