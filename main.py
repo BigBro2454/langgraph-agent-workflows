@@ -46,7 +46,11 @@ graph_builder.add_edge(START, "chatbot")
 graph_builder.add_edge("chatbot", END)
 
 # Compile the graph into a runnable LangChain runnable
-graph = graph_builder.compile()
+def compile_graph(checkpointer=None):
+    """Compile graph with optional checkpointer (e.g. SqliteSaver)."""
+    return graph_builder.compile(checkpointer=checkpointer)
+
+graph = compile_graph()
 
 # 4. Run the Agent
 if __name__ == "__main__":

@@ -56,3 +56,11 @@ Thumbs.db
 .coverage
 htmlcov/
 .pytest_cache/
+
+# SQLite & State Persistence Checkpoints
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+checkpoints.db
+checkpoints.db*

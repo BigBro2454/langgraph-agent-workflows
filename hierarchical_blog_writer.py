@@ -135,7 +135,15 @@ super_builder.add_conditional_edges(
     {"FINISH": END, "research_team": "research_team", "writing_team": "writing_team"}
 )
 super_builder.add_edge(START, "supervisor")
-super_graph = super_builder.compile()
+
+def compile_super_graph(checkpointer=None, interrupt_before=None):
+    """Compile Top-Level Supervisor with optional SqliteSaver and HITL breakpoints."""
+    return super_builder.compile(
+        checkpointer=checkpointer,
+        interrupt_before=interrupt_before
+    )
+
+super_graph = compile_super_graph()
 
 # --- 4. Run Execution ---
 if __name__ == "__main__":

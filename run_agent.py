@@ -30,11 +30,11 @@ def run_tests():
 
 def main():
     parser = argparse.ArgumentParser(
-        description="LangGraph Agent Workflows - Multi-Agent Systems & Cyclic State Machines"
+        description="LangGraph Agent Workflows - Multi-Agent Systems, HITL Breakpoints & SQLite Checkpointing"
     )
     parser.add_argument(
         "--mode",
-        choices=["simple", "hierarchical"],
+        choices=["simple", "hierarchical", "hitl"],
         default="hierarchical",
         help="Workflow execution mode (default: hierarchical)"
     )
@@ -43,6 +43,38 @@ def main():
         type=str,
         default="Write an executive briefing on how enterprise multi-agent workflows reduce token latency and prevent context poisoning.",
         help="Prompt for the hierarchical supervisor workflow"
+    )
+    parser.add_argument(
+        "--thread-id",
+        type=str,
+        default="session-thread-1",
+        help="Thread ID for SQLite state checkpointing (used in hitl mode)"
+    )
+    parser.add_argument(
+        "--db-path",
+        type=str,
+        default="checkpoints.db",
+        help="SQLite database path for checkpoints"
+    )
+    parser.add_argument(
+        "--inspect",
+        action="store_true",
+        help="Inspect state at breakpoint for thread-id"
+    )
+    parser.add_argument(
+        "--feedback",
+        type=str,
+        help="Human supervisor feedback/steering to inject into state"
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume execution of a paused breakpoint thread"
+    )
+    parser.add_argument(
+        "--history",
+        action="store_true",
+        help="Print audit history of saved checkpoints for thread-id"
     )
     parser.add_argument(
         "--test",
@@ -65,8 +97,38 @@ def main():
         import main as simple_agent
         # Runs the interactive loop in main.py
         print("Starting Simple LangGraph Chatbot Loop...")
-        # main.py __name__ == '__main__' block can be invoked directly:
         os.system(f"{sys.executable} main.py")
+    elif args.mode == "hitl":
+        from hitl_checkpoint_workflow import HITLWorkflowManager
+        manager = HITLWorkflowManager(db_path=args.db_path)
+        try:
+            if args.inspect:
+                info = manager.inspect_state(args.thread_id)
+                print(f"\n🔍 State Inspection for Thread '{args.thread_id}':")
+                print(f"  - Paused: {info['is_paused']}")
+                print(f"  - Next Node: {info['next_node']}")
+                print(f"  - Checkpoint ID: {info['checkpoint_id']}")
+                print(f"  - Messages ({len(info['messages'])}):")
+                for m in info["messages"][-5:]:
+                    print(f"    [{m['sender']}]: {m['content_preview']}...")
+                return
+            if args.history:
+                hist = manager.get_history(args.thread_id)
+                print(f"\n📜 Checkpoint History ({len(hist)} entries):")
+                for idx, h in enumerate(hist):
+                    print(f"  #{idx+1} [ID: {h['checkpoint_id'][:8]}...] Next: {h['next']} | Msgs: {h['messages_count']}")
+                return
+            if args.resume:
+                print(f"\n▶️ Resuming thread '{args.thread_id}' with feedback: {args.feedback}...")
+                res = manager.resume_workflow(args.thread_id, feedback=args.feedback)
+                print(f"Status: {res['status']}, Next: {res['next']}, Total Msgs: {res['messages_count']}")
+                return
+
+            print(f"Starting HITL Checkpointed Supervisor (Thread: {args.thread_id})...")
+            res = manager.start_workflow(args.thread_id, args.prompt)
+            print(f"Status: {res['status']}, Next: {res['next']}, Checkpoint ID: {res['checkpoint_id']}")
+        finally:
+            manager.close()
     else:
         import hierarchical_blog_writer as hbw
         print(f"Starting Hierarchical Multi-Agent Supervisor with Prompt:\n'{args.prompt}'\n")
