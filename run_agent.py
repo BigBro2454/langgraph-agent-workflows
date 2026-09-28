@@ -34,7 +34,7 @@ def main():
     )
     parser.add_argument(
         "--mode",
-        choices=["simple", "hierarchical", "hitl"],
+        choices=["simple", "hierarchical", "hitl", "evaluator"],
         default="hierarchical",
         help="Workflow execution mode (default: hierarchical)"
     )
@@ -42,19 +42,37 @@ def main():
         "--prompt",
         type=str,
         default="Write an executive briefing on how enterprise multi-agent workflows reduce token latency and prevent context poisoning.",
-        help="Prompt for the hierarchical supervisor workflow"
+        help="Prompt or topic for the workflow"
     )
     parser.add_argument(
         "--thread-id",
         type=str,
         default="session-thread-1",
-        help="Thread ID for SQLite state checkpointing (used in hitl mode)"
+        help="Thread ID for SQLite state checkpointing (used in hitl and evaluator modes)"
     )
     parser.add_argument(
         "--db-path",
         type=str,
         default="checkpoints.db",
         help="SQLite database path for checkpoints"
+    )
+    parser.add_argument(
+        "--pass-threshold",
+        type=float,
+        default=8.0,
+        help="Minimum quality score threshold (0-10) to pass acceptance gate in evaluator mode (default: 8.0)"
+    )
+    parser.add_argument(
+        "--max-revisions",
+        type=int,
+        default=2,
+        help="Maximum self-correction reflection iterations before circuit breaker trips (default: 2)"
+    )
+    parser.add_argument(
+        "--export-telemetry",
+        type=str,
+        default="",
+        help="File path to export JSON streaming telemetry report"
     )
     parser.add_argument(
         "--inspect",
@@ -98,6 +116,30 @@ def main():
         # Runs the interactive loop in main.py
         print("Starting Simple LangGraph Chatbot Loop...")
         os.system(f"{sys.executable} main.py")
+    elif args.mode == "evaluator":
+        import json
+        import sqlite3
+        from langgraph.checkpoint.sqlite import SqliteSaver
+        from evaluator_optimizer_workflow import run_evaluator_optimizer_stream
+
+        conn = sqlite3.connect(args.db_path, check_same_thread=False)
+        saver = SqliteSaver(conn)
+        try:
+            result = run_evaluator_optimizer_stream(
+                topic=args.prompt,
+                pass_threshold=args.pass_threshold,
+                max_revisions=args.max_revisions,
+                checkpointer=saver,
+                thread_id=args.thread_id,
+                verbose=True
+            )
+            if args.export_telemetry:
+                telemetry = result.get("telemetry", {})
+                with open(args.export_telemetry, "w", encoding="utf-8") as f:
+                    json.dump(telemetry, f, indent=2)
+                print(f"📊 Telemetry exported cleanly to: {args.export_telemetry}")
+        finally:
+            conn.close()
     elif args.mode == "hitl":
         from hitl_checkpoint_workflow import HITLWorkflowManager
         manager = HITLWorkflowManager(db_path=args.db_path)

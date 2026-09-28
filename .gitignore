@@ -64,3 +64,9 @@ htmlcov/
 *.sqlite3
 checkpoints.db
 checkpoints.db*
+
+# Reports & Locks
+uv.lock
+*.log
+telemetry_*.json
+
