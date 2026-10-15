@@ -4,6 +4,10 @@
 Demonstrates:
   1. Foundational cyclic StateGraph agent (interactive chatbot)
   2. Hierarchical multi-agent supervisor workflow (subgraphs as nodes)
+  3. Human-in-the-Loop (HITL) breakpoints & SQLite checkpointing
+  4. Evaluator-Optimizer reflection loop with dynamic streaming telemetry
+  5. Multi-stage security guardrails & adversarial prompt injection defense
+  6. Cross-model token economics & enterprise SLA benchmark suite
 """
 
 import argparse
@@ -28,9 +32,49 @@ def run_tests():
     sys.exit(0 if result.wasSuccessful() else 1)
 
 
+def run_guardrails_check(prompt: str):
+    """Run security guardrails validation on prompt and display inspection telemetry."""
+    from security.guardrails import get_default_guardrails
+    guardrails = get_default_guardrails()
+
+    print("\n" + "=" * 70)
+    print("🛡️  LANGGRAPH MULTI-STAGE SECURITY GUARDRAILS INSPECTION")
+    print("=" * 70)
+    print(f"Input Prompt:\n  \"{prompt}\"\n")
+
+    val_res = guardrails.validate_input(prompt)
+
+    print(f"Latency:        {val_res['latency_ms']:.3f} ms")
+    if val_res["passed"]:
+        status_badge = "✅ PASS (Sanitized)" if val_res["masked_entities"] else "✅ PASS (Clean)"
+        print(f"Status:         {status_badge}")
+        print(f"Policy Rule:    None (Safe)")
+        print(f"Masked PII:     {val_res['masked_entities'] or 'None'}")
+        print(f"\nSanitized State Payload:\n  \"{val_res['sanitized_text']}\"")
+    else:
+        print(f"Status:         ⛔ BLOCKED (Security Policy Interception)")
+        print(f"Violation Rule: {val_res['reason']}")
+        print(f"Interception:   Adversarial prompt injection neutralized before StateGraph execution.")
+
+    print("=" * 70 + "\n")
+
+
+def run_benchmark_suite(export_dir: str = "telemetry", iterations: int = 10):
+    """Execute cross-model token economics and latency benchmark across graph topologies."""
+    from benchmarks.graph_benchmarker import get_benchmark_engine
+    engine = get_benchmark_engine(output_dir=export_dir)
+    print(f"\n🚀 Running LangGraph Benchmark Suite ({iterations} iterations per topology)...")
+    results = engine.run_benchmarks(iterations=iterations)
+    summary = engine.generate_summary(results)
+    json_path = engine.export_json(summary)
+    md_path = engine.export_markdown(summary)
+    print(engine.render_ascii_scorecard(summary))
+    print(f"\n✅ Scorecards exported cleanly to:\n  - JSON: {json_path}\n  - Markdown: {md_path}\n")
+
+
 def main():
     parser = argparse.ArgumentParser(
-        description="LangGraph Agent Workflows - Multi-Agent Systems, HITL Breakpoints & SQLite Checkpointing"
+        description="LangGraph Agent Workflows - Multi-Agent Systems, Security Guardrails & Checkpointing"
     )
     parser.add_argument(
         "--mode",
@@ -75,6 +119,29 @@ def main():
         help="File path to export JSON streaming telemetry report"
     )
     parser.add_argument(
+        "--guardrails",
+        "-g",
+        action="store_true",
+        help="Run security guardrails and prompt injection inspection on the input prompt"
+    )
+    parser.add_argument(
+        "--benchmark",
+        "-b",
+        action="store_true",
+        help="Run cross-model token economics and latency benchmark across graph topologies"
+    )
+    parser.add_argument(
+        "--export-benchmark",
+        type=str,
+        default="telemetry",
+        help="Directory to export benchmark JSON and Markdown scorecards (default: telemetry)"
+    )
+    parser.add_argument(
+        "--dashboard",
+        action="store_true",
+        help="Display path to interactive architecture and security simulation dashboard"
+    )
+    parser.add_argument(
         "--inspect",
         action="store_true",
         help="Inspect state at breakpoint for thread-id"
@@ -105,6 +172,21 @@ def main():
     if args.test:
         run_tests()
 
+    if args.dashboard:
+        dashboard_path = os.path.abspath("docs/langgraph_architecture_dashboard.html")
+        print(f"\n🌐 LangGraph Interactive Architecture & Security Dashboard:")
+        print(f"   file://{dashboard_path}")
+        print("   Open this URL in any web browser to view the topology visualizer and live simulator.\n")
+        return
+
+    if args.guardrails:
+        run_guardrails_check(args.prompt)
+        return
+
+    if args.benchmark:
+        run_benchmark_suite(export_dir=args.export_benchmark)
+        return
+
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         print("⚠️  WARNING: GEMINI_API_KEY is not set.")
@@ -113,7 +195,6 @@ def main():
 
     if args.mode == "simple":
         import main as simple_agent
-        # Runs the interactive loop in main.py
         print("Starting Simple LangGraph Chatbot Loop...")
         os.system(f"{sys.executable} main.py")
     elif args.mode == "evaluator":

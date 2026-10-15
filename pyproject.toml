@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "langgraph-agent-workflows"
-version = "0.2.0"
-description = "Production stateful multi-agent architectures, hierarchical supervisor graphs, and evaluator-optimizer reflection loops powered by LangGraph and Google Gemini"
+version = "0.3.0"
+description = "Production stateful multi-agent architectures, security guardrails, evaluator-optimizer reflection loops, and token economics benchmarks powered by LangGraph and Google Gemini"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -20,6 +20,10 @@ keywords = [
     "hierarchical-agents",
     "evaluator-optimizer",
     "reflection-loop",
+    "security-guardrails",
+    "prompt-injection",
+    "token-economics",
+    "benchmarks",
     "streaming-telemetry",
     "langchain",
     "agentic-ai"
@@ -60,4 +64,11 @@ py-modules = [
     "hitl_checkpoint_workflow",
     "evaluator_optimizer_workflow"
 ]
+packages = [
+    "security",
+    "benchmarks"
+]
 
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
