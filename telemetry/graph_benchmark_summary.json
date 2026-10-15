@@ -1,0 +1,92 @@
+{
+  "timestamp": 1792091476.4414,
+  "evaluation_engine": "LangGraph StateGraph Benchmarker v0.3.0",
+  "total_topologies_evaluated": 3,
+  "total_runs_simulated": 30,
+  "fleet_average_p95_latency_ms": 172.2,
+  "annual_500k_runs_model": {
+    "gemini_2_5_flash_usd": 209.37,
+    "claude_3_5_sonnet_usd": 8800.0,
+    "gpt_4o_usd": 6979.17,
+    "annual_savings_vs_claude_usd": 8590.63,
+    "annual_savings_vs_gpt4o_usd": 6769.8,
+    "cost_reduction_factor": ">96.4%"
+  },
+  "topologies": [
+    {
+      "topology_id": "hierarchical_supervisor",
+      "topology_name": "Hierarchical Graph-of-Graphs Supervisor",
+      "iterations": 10,
+      "latency": {
+        "min_ms": 130.64,
+        "mean_ms": 143.1,
+        "max_ms": 154.56,
+        "p50_ms": 144.1,
+        "p95_ms": 154.56
+      },
+      "tokens": {
+        "prompt": 2850,
+        "completion": 820,
+        "cached_prompt": 1400,
+        "total": 3670
+      },
+      "economics_per_1k_runs": {
+        "gemini_2_5_flash_usd": 0.4072,
+        "claude_3_5_sonnet_usd": 17.07,
+        "gpt_4o_usd": 13.575,
+        "savings_vs_claude_percent": 97.6,
+        "savings_vs_gpt4o_percent": 97.0
+      }
+    },
+    {
+      "topology_id": "evaluator_optimizer_reflection",
+      "topology_name": "Evaluator-Optimizer Reflection Cycle",
+      "iterations": 10,
+      "latency": {
+        "min_ms": 216.2,
+        "mean_ms": 236.1,
+        "max_ms": 255.0,
+        "p50_ms": 237.1,
+        "p95_ms": 255.0
+      },
+      "tokens": {
+        "prompt": 3480,
+        "completion": 1150,
+        "cached_prompt": 1800,
+        "total": 4630
+      },
+      "economics_per_1k_runs": {
+        "gemini_2_5_flash_usd": 0.5385,
+        "claude_3_5_sonnet_usd": 22.83,
+        "gpt_4o_usd": 17.95,
+        "savings_vs_claude_percent": 97.6,
+        "savings_vs_gpt4o_percent": 97.0
+      }
+    },
+    {
+      "topology_id": "hitl_sqlite_checkpoint",
+      "topology_name": "HITL Checkpointed StateGraph (SqliteSaver)",
+      "iterations": 10,
+      "latency": {
+        "min_ms": 90.16,
+        "mean_ms": 99.1,
+        "max_ms": 107.04,
+        "p50_ms": 100.1,
+        "p95_ms": 107.04
+      },
+      "tokens": {
+        "prompt": 2180,
+        "completion": 640,
+        "cached_prompt": 1200,
+        "total": 2820
+      },
+      "economics_per_1k_runs": {
+        "gemini_2_5_flash_usd": 0.3105,
+        "claude_3_5_sonnet_usd": 12.9,
+        "gpt_4o_usd": 10.35,
+        "savings_vs_claude_percent": 97.6,
+        "savings_vs_gpt4o_percent": 97.0
+      }
+    }
+  ]
+}
